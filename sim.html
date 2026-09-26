@@ -67,7 +67,6 @@
 		const movementValue = document.getElementById("movement");
 		const methodValue = document.getElementById("method");
 
-
 		frequencyValue.value = sineFreq;
 		carrierFrequencyValue.value = PWMfreq;
 		powerValue.value = power;
@@ -76,6 +75,21 @@
 		pulsesValue.value = pulsePattern;
 
 		let move;
+
+		const audioDuration = 1000;
+		const samplesPerMillisecond = 48;
+		const audioCtx = new AudioContext();
+		audioCtx.sampleRate = 1000 * samplesPerMillisecond;
+		const samples = audioDuration * samplesPerMillisecond;
+		const buffer1 = audioCtx.createBuffer(1, samples, audioCtx.sampleRate);
+		const buffer2 = audioCtx.createBuffer(1, samples, audioCtx.sampleRate);
+		const pulseData = new Int8Array(samples);
+
+
+		let activeBuffer = 0;
+		let currentBuffer;
+
+		let startTime = 0;
 
 		function frame() {
 			timeScale = timeWarpValue.value * 1000;
@@ -101,6 +115,7 @@
 			canvas.height = canvasHeight;
 
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			pulseData.fill(0);
 
 			let phase1Height = Math.floor(canvasHeight / 4);
 			let phase2Height = Math.floor(canvasHeight / 2);
@@ -129,7 +144,9 @@
 			for (let i = 0; i <= canvas.width; ++i) {
 				registerValues = pulse((i + performance.now() * move) * timeScale) & (high1 | low1);
 				y = registerValues & high1 ? phase1top : registerValues & low1 ? phase1bottom : phase1Height;
-
+				
+				pulseData[i] |= registerValues;
+				
 				ctx.lineTo(i, prevHeight)
 				ctx.lineTo(i, y)
 				prev = registerValues;
@@ -147,6 +164,8 @@
 			for (let i = 0; i <= canvas.width; ++i) {
 				registerValues = pulse((i + performance.now() * move) * timeScale) & (high2 | low2);
 				y = registerValues & high2 ? phase2top : registerValues & low2 ? phase2bottom : phase2Height;
+
+				pulseData[i] |= registerValues;
 
 				ctx.lineTo(i, prevHeight)
 				ctx.lineTo(i, y)
@@ -166,6 +185,8 @@
 				registerValues = pulse((i + performance.now() * move) * timeScale) & (high3 | low3);
 				y = registerValues & high3 ? phase3top : registerValues & low3 ? phase3bottom : phase3Height;
 
+				pulseData[i] |= registerValues;
+
 				ctx.lineTo(i, prevHeight)
 				ctx.lineTo(i, y)
 				prev = registerValues;
@@ -175,7 +196,6 @@
 			ctx.lineTo(canvasWidth, prevHeight)
 			ctx.stroke();
 
-
 			let sinOffset = 0;
 
 			for (const mid of [phase1Height, phase2Height, phase3Height]) {
@@ -183,6 +203,7 @@
 				ctx.strokeStyle = "#ffffff";
 				ctx.moveTo(-100, mid);
 
+				
 				for (let i = 0; i <= canvas.width; ++i) {
 					ctx.lineTo(i, mid + waveHeight * -Math.sin((2 *  sineFreq *
 						(i + performance.now() * move) 
@@ -196,6 +217,42 @@
 
 			window.requestAnimationFrame(frame);
 		}
+
+		setInterval(() => {
+				const source = audioCtx.createBufferSource();
+				source.buffer = currentBuffer;
+				source.connect(audioCtx.destination);
+				source.start();
+
+				startTime = performance.now();
+
+				let prev = 0;
+				let currentPulse = 0.1;
+
+				currentBuffer = activeBuffer ? buffer1 : buffer2; 
+				activeBuffer = ~activeBuffer & 1;
+
+
+				for (let i = 0; i < pulseData.length; ++i) {
+					pulseData[i] = pulse(i / samplesPerMillisecond * 1000);
+				}
+
+				const nowBuffering = currentBuffer.getChannelData(0);
+				for (let i = 0; i < pulseData.length; ++i) {
+					registerValues = pulseData[i];
+
+					const changes = prev & ~registerValues;
+
+					if (changes && registerValues & highMask && registerValues & lowMask) {
+						currentPulse = -currentPulse;
+					}
+					// currentPulse = registerValues & high1 ? 0.1 : registerValues & low1 ? -0.1 : 0; 
+
+					nowBuffering[i] = currentPulse;
+
+					prev = registerValues;
+				}
+		}, audioDuration);
 
 		frame();
 	</script>
