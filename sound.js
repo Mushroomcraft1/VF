@@ -110,6 +110,7 @@ function startSound() {
 				prevPulse = currentPulse;
 			}
 		}
+		nowBuffering[pulseData.length - 1] = 0;
 		prevSource = source;
 	}, audioDuration);
 }
