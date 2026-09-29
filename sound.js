@@ -31,9 +31,10 @@ function popCount(x) {
 	return n ;
 }
 
+
 let soundLoop;
 
-function startSound() {
+async function startSound() {
 	if (soundStarted) throw "SoundSim already started";
 	soundStarted = true;
 	console.log("Started sound")
@@ -56,13 +57,11 @@ function startSound() {
 	let startIdx = 0;
 	let prevSource;
 
-	soundLoop = setInterval(() => {
-		const source = audioCtx.createBufferSource();
-		source.buffer = currentBuffer;
-		source.connect(audioCtx.destination);
-		source.start(startTime);
-		startTime = audioCtx.currentTime + buffer1.duration;
+	await audioCtx.audioWorklet.addModule("./processor.js");
+	const streamNode = new AudioWorkletNode(audioCtx, "vf-sim");
+	streamNode.connect(audioCtx.destination);
 
+	function generate() {
 		let pulseHeight = soundOptions.waveAmplitude;
 		let prev = 0;
 		let currentPulse = 0;
@@ -88,8 +87,11 @@ function startSound() {
 
 				currentPulse = registerValues & high1 ? pulseHeight : registerValues & low1 ? -pulseHeight : 0
 
-				nowBuffering[i] = currentPulse * sign;
+				if (currentPulse == 0 && currentPulse != prevPulse) sign *= -1;
 
+				nowBuffering[i] = currentPulse * sign;
+				
+				prevPulse = currentPulse;
 			}
 		} else {
 			for (let i = 0; i < pulseData.length; ++i) {
@@ -110,9 +112,13 @@ function startSound() {
 				prevPulse = currentPulse;
 			}
 		}
-		nowBuffering[pulseData.length - 1] = 0;
-		prevSource = source;
-	}, audioDuration);
+		
+		streamNode.port.postMessage(nowBuffering);
+	}
+
+	generate();
+
+	soundLoop = setInterval(generate, audioDuration);
 }
 
 function stopSound() {
