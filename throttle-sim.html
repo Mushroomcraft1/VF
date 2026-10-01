@@ -76,6 +76,8 @@
 		const canvas = document.getElementById("canvas");
 		const ctx = canvas.getContext("2d");
 
+		window.addEventListener("pointerdown", () => { startSound(); })
+
 		const increaseButton = document.getElementById("increase");
 		const decreaseButton = document.getElementById("decrease");
 
@@ -117,7 +119,6 @@
 		})
 
 		setCanvas(canvas, ctx);
-		startSound();
 
 		setupDatabase("./trains.json")
 			.then(() => {

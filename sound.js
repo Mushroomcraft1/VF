@@ -4,7 +4,8 @@ let soundOptions = {
 	singlePhase: false,
 	sampleRate: 48000,
 	bufferDuration: 50,
-	waveAmplitude: 0.1 
+	waveAmplitude: 0.1,
+	smoothLength: 5,
 };
 
 /**
@@ -46,6 +47,7 @@ async function startSound() {
 	const samples = audioDuration * sampleRate / 1000;
 	const buffer1 = audioCtx.createBuffer(1, samples, sampleRate);
 	const buffer2 = audioCtx.createBuffer(1, samples, sampleRate);
+	const intermediate = audioCtx.createBuffer(2, samples, sampleRate);
 	const pulseData = new Uint8Array(samples);
 
 	let prevPulse = 0;
@@ -80,36 +82,35 @@ async function startSound() {
 		let noOfLowBits = 0;
 
 		const nowBuffering = currentBuffer.getChannelData(0);
+		const intermediateBuffer1 = intermediate.getChannelData(0);
+		const intermediateBuffer2 = intermediate.getChannelData(1);
+		nowBuffering.fill(0);
 
-		if (soundOptions.singlePhase) {
+		const bitmasks = [high1 | low1, high2 | low2, high3 | low3];
+		if (soundOptions.singlePhase) bitmasks.length = 1;
+
+		for (const bitmask of bitmasks) {
 			for (let i = 0; i < pulseData.length; ++i) {
 				registerValues = pulseData[i];
 
-				currentPulse = registerValues & high1 ? pulseHeight : registerValues & low1 ? -pulseHeight : 0
+				currentPulse = registerValues & bitmask ? pulseHeight : 0
 
-				if (currentPulse == 0 && currentPulse != prevPulse) sign *= -1;
-
-				nowBuffering[i] = currentPulse * sign;
+				intermediateBuffer1[i] = currentPulse;
 				
 				prevPulse = currentPulse;
 			}
-		} else {
+
+			let sum = totalSum = 0;
+			const smooth = Math.round(sampleRate / 48000 * soundOptions.smoothLength);
+			for (let i = 0; i < pulseData.length + smooth; ++i) {
+				if (i < pulseData.length) sum += intermediateBuffer1[i], totalSum += intermediateBuffer1[i];
+				if (i > smooth) sum -= intermediateBuffer1[i - smooth];
+				intermediateBuffer2[i] = sum / smooth;
+			}
+
+			const average = pulseHeight / 2;//totalSum / pulseData.length;
 			for (let i = 0; i < pulseData.length; ++i) {
-				registerValues = pulseData[i];
-
-				let newNoOfHighBits = popCount(registerValues & highMask);
-				let newNoOfLowBits = popCount(registerValues & lowMask);
-
-				currentPulse = newNoOfHighBits > 0 && newNoOfLowBits > 0 ? (newNoOfHighBits + newNoOfLowBits) * pulseHeight : 0;
-
-				if (currentPulse == 0 && currentPulse != prevPulse) sign *= -1;
-
-				nowBuffering[i] = currentPulse * sign;
-
-				noOfHighBits = newNoOfHighBits;
-				noOfHighBits = newNoOfLowBits;
-				
-				prevPulse = currentPulse;
+				nowBuffering[i] += intermediateBuffer2[i] - average;
 			}
 		}
 		
