@@ -43,10 +43,14 @@ async function setupDatabase(trainConfigSource) {
 
 /**
  * 
- * @param {String} trainID - Unique name of the string used in the JSON DB 
+ * @param {String|Object} trainID - Unique name of the string used in the JSON DB 
  */
 function setTrain(trainID) {
-	currentTrainConfig = trainDB.get(trainID.toLowerCase());
+	if (typeof trainID == "string") {
+		currentTrainConfig = trainDB.get(trainID.toLowerCase());
+	} else {
+		currentTrainConfig = trainID;
+	}
 
 	let {
 		speed_per_motor_hz,
@@ -108,7 +112,7 @@ function setTrain(trainID) {
 		maxFrequency = pulsing[i].min_motor_frequency;
 	}
 
-	console.log("Loaded train " + trainID)
+	console.log("Loaded train " + (typeof trainID == "string" ? trainID : "from object"));
 }
 
 /**
