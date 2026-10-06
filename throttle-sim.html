@@ -60,6 +60,29 @@
 			button {
 				margin-right: 0.5rem
 			}
+
+			#json {
+				position: absolute;
+				top: 5vw;
+				left: 5vw;
+				width: 90vw;
+				height: calc(100vh - 10vw);
+				overflow-y: scroll;
+				background-color: #333a;
+				border-radius: 1vw;
+			}
+
+			.json-buttons {
+				position: absolute;
+				display: flex;
+				flex-direction: row;
+				left: 0;
+				bottom: calc(2.5vw - 1rem);
+				width: 100%;
+				height: 2rem;
+				overflow: hidden;
+				justify-content: center;
+			}
 		</style>
 	</head>
 	<body>
@@ -96,6 +119,7 @@
 		<canvas id="canvas">
 			
 		</canvas>
+		<textarea id="json" hidden="true"></textarea>
 	</body>
 	<script src="./pulsing.js"></script>
 	<script src="./render.js"></script>
@@ -108,7 +132,12 @@
 		const canvas = document.getElementById("canvas");
 		const ctx = canvas.getContext("2d");
 
-		window.addEventListener("pointerdown", () => { startSound(); })
+		function clickFunction() { 
+			startSound();
+			window.removeEventListener("pointerdown", clickFunction); 
+		}
+
+		window.addEventListener("pointerdown", clickFunction);
 
 		const increaseButton = document.getElementById("increase");
 		const decreaseButton = document.getElementById("decrease");
@@ -143,7 +172,7 @@
 		}
 
 		function loadTrainToSim() {
-			setTrain(currentTrain);
+			setTrain(structuredClone(currentTrain));
 		}
 
 		function loadEditor(name, trainConfig) {
@@ -210,26 +239,29 @@
 					modes.appendChild(createElement("option", {
 						textContent: mode,
 						value: mode
-					}))
+					}));
 				}
 				function updateValue(event) {
 					const element = event.srcElement;
 					const key = element["data-value"];
-					pulsingMode[key] = element.value;
-					if (element.value == -1) delete pulsingMode[key];
+					pulsingMode[key] = Number(element.value);
+					if (pulsingMode[key] < 0) delete pulsingMode[key];
+					currentTrain.pulsing[idx] = pulsingMode;
+					loadTrainToSim();
 				}
 				const variables = [
 					createElement("input", { "data-value": "min_speed", type: "number", value: 0, step: 0.1, min: 0 }, ["thin"]),
-					createElement("input", { "data-value": "max_speed", type: "number", value: 0, step: 0.1, min: 0 }, ["thin"]),
-					createElement("input", { "data-value": "min_motor_frequency", type: "number", value: -1, step: 0.1, min: 0 }, ["thin"]),
-					createElement("input", { "data-value": "max_motor_frequency", type: "number", value: -1, step: 0.1, min: 0 }, ["thin"]),
+					createElement("input", { "data-value": "max_speed", type: "number", value: 0, step: 0.1, min: -1 }, ["thin"]),
+					createElement("input", { "data-value": "min_motor_frequency", type: "number", value: -1, step: 0.1, min: -1 }, ["thin"]),
+					createElement("input", { "data-value": "max_motor_frequency", type: "number", value: -1, step: 0.1, min: -1 }, ["thin"]),
 					createElement("input", { "data-value": "carrier_frequency", type: "number", value: 400, step: 10, min: 50 }, ["thin"]),
 					createElement("input", { "data-value": "min_carrier_frequency", type: "number", value: 400, step: 10, min: 50 }, ["thin"]),
 					createElement("input", { "data-value": "max_carrier_frequency", type: "number", value: 500, step: 10, min: 50 }, ["thin"]),
 					createElement("input", { "data-value": "pulses", type: "number", value: 21, step: 1, min: 1 }, ["thin"]),
 					createElement("input", { "data-value": "min_pulses", type: "number", value: 1, step: 1, min: 1 }, ["thin"]),
 					createElement("input", { "data-value": "max_pulses", type: "number", value: 21, step: 1, min: 1 }, ["thin"]),
-					createElement("input", { "data-value": "pulse_step", type: "number", value: 2, step: 1, min: 1 }, ["thin"])
+					createElement("input", { "data-value": "pulse_step", type: "number", value: 2, step: 1, min: 1 }, ["thin"]),
+					createElement("input", { "data-value": "max_switching_frequency", type: "number", value: 400, step: 10, min: 50 }, ["thin"]),
 				];
 				function updateVisibilities(visible) {
 					let i = 0;
@@ -246,35 +278,37 @@
 					switch (modes.value) {
 						case "ASYNC":
 							{
-								updateVisibilities([true, true, true, true, true, false, false, false, false, false, false]);
+								updateVisibilities([true, true, true, true, true, false, false, false, false, false, false, false]);
 								break;
 							}
 						case "ASYNC-OSCILLATING":
 							{
-								updateVisibilities([true, true, true, true, false, true, true, false, false, false, false]);
+								updateVisibilities([true, true, true, true, false, true, true, false, false, false, false, false]);
 								break;
 							}
 						case "ASYNC-SWEEP":
 							{
-								updateVisibilities([true, true, true, true, false, true, true, false, false, false, false]);
+								updateVisibilities([true, true, true, true, false, true, true, false, false, false, false, false]);
 								break;
 							}
 						case "AUTO-SYNC":
 							{
-								updateVisibilities([true, true, true, true, false, false, false, false, true, true, true]);
+								updateVisibilities([true, true, true, true, false, false, false, false, true, true, true, true]);
 								break;
 							}
 						case "SYNC":
 							{
-								updateVisibilities([true, true, true, true, false, false, false, true, false, false, false]);
+								updateVisibilities([true, true, true, true, false, false, false, true, false, false, false, false]);
 								break;
 							}
 						case "SHE-PWM":
 							{
-								updateVisibilities([true, true, true, true, false, false, false, true, false, false, false]);
+								updateVisibilities([true, true, true, true, false, false, false, true, false, false, false, false]);
 								break;
 							}
 					}
+					currentTrain.pulsing[idx] = pulsingMode;
+					loadTrainToSim();
 				});
 				newPulsingMode.appendChild(
 					createInput("Mode: ", modes),
@@ -290,7 +324,8 @@
 					"Pulses: ",
 					"Min Pulses: ",
 					"Max Pulses: ",
-					"Pulse Step: "
+					"Pulse Step: ",
+					"Max Switching Frequency: "
 				];
 				for (const element of variables) {
 					const key = element["data-value"];
@@ -313,10 +348,11 @@
 				newPulsingMode.append(deleteMode, insertMode);
 				pulsing.appendChild(newPulsingMode);
 				if (idx < indicies.length) {
-					console.log(pulsing.moveBefore(newPulsingMode, pulsing.children[idx]));
+					pulsing.moveBefore(newPulsingMode, pulsing.children[idx]);
 				}
 				modes.value = pulsingMode.mode ?? "ASYNC";
 				modes.dispatchEvent(new Event("change"));
+				currentTrain.pulsing[idx] = pulsingMode;
 			}
 
 			const pulsing = createElement("div", {}, ["pulsing"]);
@@ -352,7 +388,33 @@
 					}
 				]
 			});
-		})
+		});
+
+		const displayArea = document.getElementById("json");
+
+		document.getElementById("save").addEventListener("click", () => {
+			console.log("Saving " + trainName);
+			console.log(currentTrain);
+			const trainSave = {};
+			trainSave[trainName.toLowerCase().replaceAll(",", "-")] = currentTrain;
+			displayArea.hidden = false;
+			displayArea.textContent = JSON.stringify(
+				trainSave,
+				null, "\t"
+			);
+			const buttons = createElement("div", {}, ["json-buttons"]);
+			const closeButton = createElement("button", { textContent: "Close" });
+			const copyButton = createElement("button", { textContent: "Copy" });
+			buttons.append(copyButton, closeButton);
+			document.body.appendChild(buttons);
+			closeButton.addEventListener("click", () => {
+				displayArea.hidden = true;
+				buttons.remove();
+			});
+			copyButton.addEventListener("click", () => {
+				navigator.clipboard.writeText(displayArea.textContent);
+			});
+		});
 
 		const frequencyElement = document.getElementById("sine-frequency-val");
 		const carrierFrequencyElement = document.getElementById("carrier-frequency-val");
@@ -424,7 +486,7 @@
 			// Update info text
 			frequencyElement.textContent = currentFrequency.toFixed(2);
 			speedElement.textContent = currentSpeed.toFixed(2);
-			carrierFrequencyElement.textContent = carrierFrequency;
+			carrierFrequencyElement.textContent = Math.round(carrierFrequency);
 			powerElement.textContent = Math.floor(currentPower * 100);
 			pulsesElement.textContent = pulses;
 			methodText.textContent = pulsingMode;
