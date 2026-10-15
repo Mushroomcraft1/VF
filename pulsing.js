@@ -1,3 +1,7 @@
+export { setFrequency, setPower, setPulseCount, setCarrierFrequency, setOscillationFunction,
+    setPulsingMethod, pulse, sineFreq, pulsingPower, PWMfreq, pulsePattern, pulsingMethod,
+    high1, low1, high2, low2, high3, low3, highMask, lowMask, fullMask };
+
 // "ASYNC", "SYNC", "SHE-PWM"
 let pulsingMethod;
 let oscillationFunction;
@@ -118,10 +122,10 @@ function setPulsingMethod(newMethod) {
 }
 
 function pulse(microsec) {
-    let mask1 = mask2 = mask3 = mask = 0;
+    let [mask1, mask2, mask3, mask] = [0];
 
-    curTime = microsec % PWMfreqTimeInt;
-    microsecMod = microsec % sineFreqTimeInt;
+    const curTime = microsec % PWMfreqTimeInt;
+    const microsecMod = microsec % sineFreqTimeInt;
 
     const progress = (microsecMod / sineFreqTime);
 

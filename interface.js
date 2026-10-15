@@ -1,3 +1,7 @@
+export { setupDatabase, setTrain, commandVF, getVFData, getTrainData, getAvailableTrains };
+import { setFrequency, setPower, setPulseCount, setCarrierFrequency, setOscillationFunction, setPulsingMethod, 
+	sineFreq, pulsingPower, PWMfreq, pulsePattern, pulsingMethod } from "./pulsing.js";
+
 let trainDB = new Map();
 
 let currentTrainConfig;
