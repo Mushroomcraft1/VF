@@ -19,21 +19,36 @@ function setSoundOptions(newOptions) {
 	}
 }
 
+let noiseNode;
+let smoothNode;
+let audioCtx;
 
 async function startSound() {
-	if (soundStarted) throw "SoundSim already started";
-	soundStarted = true;
-	console.log("Started sound")
+	return new Promise((res, rej) => {
+		if (soundStarted) rej("SoundSim already started");
+		soundStarted = true;
+		console.log("Started sound")
 
-	const audioCtx = new AudioContext();
-	audioCtx.sampleRate = soundOptions.sampleRate;
+		audioCtx = new AudioContext({
+			sampleRate: soundOptions.sampleRate
+		});
 
-	await audioCtx.audioWorklet.addModule("processor.js");
-	const noiseNode = new AudioWorkletNode(audioCtx, "vf-sim");
-	noiseNode.connect(audioCtx.destination);
+		audioCtx.audioWorklet.addModule("processor.js")
+			.then(() => {
+				smoothNode = new AudioWorkletNode(audioCtx, "vf-filter");
+				noiseNode = new AudioWorkletNode(audioCtx, "vf-generator", { processorOptions: {
+					sampleRate: soundOptions.sampleRate
+				} });
+				smoothNode.connect(audioCtx.destination);
+				noiseNode.connect(smoothNode);
+				
+				res((data) => {
+					noiseNode.port.postMessage(data);
+				});
+			});
+	});
 }
 
 function stopSound() {
-	clearInterval(soundLoop);
 	soundStarted = false;
 }
