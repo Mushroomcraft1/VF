@@ -56,10 +56,12 @@
 		"gear_ratio_wheel_side": 2,
 		"speed_per_motor_hz": 1,
 		"max_speed": 80,
-		"min_power": 0.1,
+		"peak_point": 20,
 		"controls": {
 			"accelleration": 5,
 			"decelleration": 6,
+			"min_power": 0.1,
+			"max_power": 1,
 			"accelleration_notches": 100,
 			"decelleration_notches": 100
 		},
