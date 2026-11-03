@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.optimize import minimize
 
+# AI wrote this code, I don't actually understand it
+
 def she_pwm_equations(alphas, M):
 	"""
 	Dynamically generates SHE-PWM equations for any pulse count N.

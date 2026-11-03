@@ -33,11 +33,10 @@
 	<script type="module" src="./sound.js"></script>
 	<script type="module" src="./interface.js"></script>
 	<script type="module">
-		import { setupDatabase, setTrain, commandVF, getVFData, getTrainData, getAvailableTrains } from "./interface.js";
+		import { setupDatabase, setTrain, setTrainSpeed, setSoundUpdateFunction, commandVF, getVFData, getTrainData, getAvailableTrains } from "./interface.js";
 		import { setSoundOptions, startSound, stopSound } from "./sound.js";
 		import { setCanvas, setRenderOptions, renderVisualisations } from "./render.js";
 
-		let soundUpdateFunction;
 		let currentTrain;
 
 		const canvas = document.getElementById("canvas");
@@ -47,8 +46,7 @@
 			setTimeout(() => {
 				startSound()
 					.then((funct) => {
-						console.log(funct);
-						soundUpdateFunction = funct;
+						setSoundUpdateFunction(funct);
 					});
 				window.removeEventListener("pointerdown", clickFunction); 
 			}, 100);
@@ -116,7 +114,7 @@
 			if (Math.abs(globalThis.frequency) < 0.2) globalThis.power = 0;
 			globalThis.frequency = Math.max(0, globalThis.frequency);
 
-			commandVF(globalThis.frequency, globalThis.power, soundUpdateFunction, deltaTime);
+			commandVF(globalThis.frequency, globalThis.power, deltaTime);
 			setSoundOptions({
 				volume: 0.75
 			});
