@@ -57,10 +57,10 @@ function renderVisualisations() {
 		registerHistory[i] = pulse(i * sampleTimeMicroSec);
 	}
 
-	let phase1Height = Math.floor(canvasHeight * renderOptions.phase1Position);
-	let phase2Height = Math.floor(canvasHeight * renderOptions.phase2Position);
-	let phase3Height = Math.floor(canvasHeight * renderOptions.phase3Position);
-	let waveHeight = renderOptions.absoluteWaveHeight ? renderOptions.waveHeight : renderOptions.waveHeight * canvasHeight;
+	let phase1Height = Math.floor(canvasHeight * renderOptions.phase1Position) + 0.5;
+	let phase2Height = Math.floor(canvasHeight * renderOptions.phase2Position) + 0.5;
+	let phase3Height = Math.floor(canvasHeight * renderOptions.phase3Position) + 0.5;
+	let waveHeight = Math.floor(renderOptions.absoluteWaveHeight ? renderOptions.waveHeight : renderOptions.waveHeight * canvasHeight)
 
 	let phase1top = phase1Height - waveHeight;
 	let phase1bottom = phase1Height + waveHeight;
