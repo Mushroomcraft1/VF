@@ -1,5 +1,25 @@
-export { setupDatabase, setTrain, commandVF, setTrainSpeed, setSoundUpdateFunction, getVFData, getTrainData, getAvailableTrains };
+export { setupDatabase, setTrain, commandVF, setTrainSpeed, setSoundUpdateFunction, getVFData, getTrainData, getAvailableTrains,
+	pulsingModes, oscillationModes };
 import { setBulkParameters, sineFreq, pulsingPower, PWMfreq, pulsePattern, pulsingMethod } from "./pulsing.js";
+
+const pulsingModes = [
+	"SYNC",
+	"AUTO-SYNC",
+	"SHE-PWM",
+	"ASYNC",
+	"ASYNC-STEP",
+	"ASYNC-OSCILLATING",
+	"ASYNC-SWEEP"
+]
+
+const oscillationModes = [
+	"TRIANGLE",
+	"SAW-RISING",
+	"SAW-FALLING",
+	"SINE",
+	"SQUARE",
+	"RANDOM"
+]
 
 let trainDB = new Map();
 

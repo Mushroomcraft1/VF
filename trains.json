@@ -429,6 +429,7 @@
 			{
 				"mode": "ASYNC-OSCILLATING",
 				"min_speed": 0,
+				"oscillation_frequency": -1,
 				"oscillation_mode": "RANDOM",
 				"min_carrier_frequency": 1200,
 				"max_carrier_frequency": 2400
