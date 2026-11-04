@@ -45,7 +45,7 @@
 	"kiepe": {
 		"wheel_diameter": 0.640,
 		"gear_ratio_motor_side": 7,
-		"gear_ratio_wheel_side": 4,
+		"gear_ratio_wheel_side": 1,
 		"max_speed": 80,
 		"peak_point": 20,
 		"controls": {
