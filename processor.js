@@ -50,8 +50,7 @@ class NoiseGenerator3Phase extends AudioWorkletProcessor {
 
 		microsecPerSamples = 1000 / (sampleRate / 1000)
 
-		console.log(sampleRate + "Hz")
-		console.log(options)
+		console.log(sampleRate + "Hz 3 Phase")
 
 		this.port.onmessage = (({ data }) => {
 			const d = data.deltaTime;
@@ -154,8 +153,7 @@ class NoiseGeneratorSinglePhase extends AudioWorkletProcessor {
 		soundOptions = options.processorOptions;
 		sampleRate = options.processorOptions.sampleRate;
 		microsecPerSamples = 1000 / (sampleRate / 1000)
-		console.log(sampleRate + "Hz")
-		console.log(soundOptions)
+		console.log(sampleRate + "Hz Single Phase")
 
 		this.port.onmessage = (({ data }) => {
 			const d = data.deltaTime;

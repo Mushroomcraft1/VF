@@ -514,27 +514,17 @@
 		"gear_ratio_wheel_side": 1,
 		"pulsing": [
 			{
-				"mode": "ASYNC-OSCILLATING",
-				"min_speed": 0,
-				"oscillation_frequency": -1,
-				"oscillation_mode": "RANDOM",
-				"min_carrier_frequency": 1200,
-				"max_carrier_frequency": 2400
+				"mode": "ASYNC-SWEEP",
+				"min_carrier_frequency": 400,
+				"max_carrier_frequency": 440,
+				"min_motor_frequency": 0
 			},
 			{
-				"mode": "ASYNC-OSCILLATING",
-				"min_speed": 20,
-				"oscillation_mode": "SAW-FALLING",
-				"oscillation_frequency": 120,
-				"min_carrier_frequency": 1200,
-				"max_carrier_frequency": 2400
-			},
-			{
-				"mode": "MUSIC",
-				"tempo": 120,
-				"min_speed": 30,
-				"frequencies": [440, 0],
-				"beats": [10, 1]
+				"mode": "ASYNC-MUSIC",
+				"tempo": 1200,
+				"min_speed": 5,
+				"frequencies": [440, 0, 739.99, 783.99, 830.61, 880, 932.33],
+				"beats": [10, 1, 10, 10, 10, 10, 10]
 			}
 		],
 		"controls": {}

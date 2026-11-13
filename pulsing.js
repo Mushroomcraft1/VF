@@ -10,8 +10,8 @@ let Sine1 = 0;
 let Sine2 = 0;
 let Sine3 = 0;
 
-let PWMfreq = 0; 
-let PWMfreqTime = 0;
+let PWMfreq = 100; 
+let PWMfreqTime = 1;
 let sineFreq = 0;
 let pulsingPower;
 let sineFreqTime;
@@ -104,7 +104,6 @@ function setPulseCount(newPulseCount) {
 function setCarrierFrequency(newFrequency) {
     PWMfreq = newFrequency;
     PWMfreqTime = 1000000 / newFrequency;
-    if (PWMfreq < 1) PWMfreqTime = 0;
 }
 
 let x = 0, y = 0; // Variables for the oscillation function to use
@@ -176,6 +175,7 @@ function pulse(microsec, asyncMicrosec) {
     switch (pulsingMethod) { 
         case "ASYNC": {
             if (asyncMicrosec != null) microsec = asyncMicrosec;
+            if (PWMfreq < 10) break;
             if ((microsec - pulseStartTime) >= PWMfreqTime) {
                 if (oscillationFunction != null) setCarrierFrequency(oscillationFunction(microsec));
                 const offsetTime = (microsec - pulseStartTime) % PWMfreqTime;
