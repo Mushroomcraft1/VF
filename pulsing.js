@@ -178,7 +178,8 @@ function pulse(microsec, asyncMicrosec) {
             if (asyncMicrosec != null) microsec = asyncMicrosec;
             if ((microsec - pulseStartTime) >= PWMfreqTime) {
                 if (oscillationFunction != null) setCarrierFrequency(oscillationFunction(microsec));
-                pulseStartTime += PWMfreqTime;
+                const offsetTime = (microsec - pulseStartTime) % PWMfreqTime;
+                pulseStartTime = microsec - offsetTime + PWMfreqTime;
             } 
             if (pulseStartTime > microsec + PWMfreqTime) {
                 pulseStartTime = 0;

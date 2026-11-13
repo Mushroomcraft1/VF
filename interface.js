@@ -260,9 +260,11 @@ function commandVF(frequency, power, deltaTime) {
 			data.oscillation_function = null;
 			switch (mode) {
 				case "AUTO-SYNC":
-					{
-						let calculatedPulseCount = Math.floor(max_switching_frequency / (absFrequency * 2 * pulse_step)) * pulse_step;
-						if ((min_pulses & 1) && (pulse_step & 1) == 0) calculatedPulseCount -= 1;
+					{						
+						let offset = ((min_pulses & 1) && (pulse_step & 1) == 0) ? 1 : 0;
+						let calculatedPulseCount = Math.floor(max_switching_frequency / (absFrequency * pulse_step * 2) + offset)
+						 * pulse_step - offset;
+						if (absFrequency * calculatedPulseCount * 2 > max_switching_frequency) calculatedPulseCount -= pulse_step;
 						data.pulses = Math.max(min_pulses, Math.min(max_pulses, calculatedPulseCount));
 						data.mode = "SYNC";
 						break;
