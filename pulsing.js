@@ -175,7 +175,7 @@ function pulse(microsec, asyncMicrosec) {
     switch (pulsingMethod) { 
         case "ASYNC": {
             if (asyncMicrosec != null) microsec = asyncMicrosec;
-            if (PWMfreq < 10) break;
+            if (PWMfreq < 1) break;
             if ((microsec - pulseStartTime) >= PWMfreqTime) {
                 if (oscillationFunction != null) setCarrierFrequency(oscillationFunction(microsec));
                 const offsetTime = (microsec - pulseStartTime) % PWMfreqTime;
@@ -206,10 +206,6 @@ function pulse(microsec, asyncMicrosec) {
             const currentSin1 = abs(Sine1);
             const currentSin2 = abs(Sine2);
             const currentSin3 = abs(Sine3);
-            
-            const pattern1 = Sine1 > 0 ? high1 : low1;
-            const pattern2 = Sine2 > 0 ? high2 : low2;
-            const pattern3 = Sine3 > 0 ? high3 : low3;
 
             for (let i = 0; i < pulsePattern; ++i) {
                 if (pulseTimes[i] <= currentSin1) {
@@ -230,6 +226,15 @@ function pulse(microsec, asyncMicrosec) {
             }
 
             mask = mask1 | mask2 | mask3;
+            break;
+        }
+        case "PWM": {
+            if (asyncMicrosec != null) microsec = asyncMicrosec;
+            const curTime = (microsec % PWMfreqTime) / PWMfreqTime;
+
+            let registers = pulsingPower < 0 ? low1 | high2 : low2 | high1;
+
+            mask = pulsingPower > curTime ? registers : 0;
             break;
         }
     }

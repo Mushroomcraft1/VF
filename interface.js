@@ -10,7 +10,8 @@ const pulsingModes = [
 	"ASYNC-STEP",
 	"ASYNC-OSCILLATING",
 	"ASYNC-SWEEP",
-	"ASYNC-MUSIC"
+	"ASYNC-MUSIC",
+	"PWM"
 ]
 
 const oscillationModes = [
@@ -152,6 +153,7 @@ function setTrain(trainID) {
 				checkNull("pulses");
 				break;
 			}
+			case "PWM":
 			case "ASYNC":
 			{
 				checkNull("carrier_frequency");
@@ -365,6 +367,7 @@ function commandVF(frequency, power, deltaTime) {
 						data.mode = "ASYNC";
 						break;
 					}
+				case "PWM":
 				case "ASYNC":
 					{
 						data.carrier_frequency = carrier_frequency;

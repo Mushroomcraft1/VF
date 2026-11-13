@@ -528,5 +528,30 @@
 			}
 		],
 		"controls": {}
+	},
+	"class 319": {
+		"wheel_diameter": 1,
+		"gear_ratio_motor_side": 3.6,
+		"gear_ratio_wheel_side": 1,
+		"controls": {
+			"acceleration": 3,
+			"deceleration": 5
+		},
+		"max_speed": 160,
+		"rolling_resistance": 0.3,
+		"peak_point": 30,
+		"decel_cutoff": 160,
+		"pulsing": [
+			{
+				"mode": "PWM",
+				"min_speed": 0,
+				"carrier_frequency": 150
+			},
+			{
+				"mode": "PWM",
+				"min_speed": 0.3,
+				"carrier_frequency": 300
+			}
+		]
 	}
 }
