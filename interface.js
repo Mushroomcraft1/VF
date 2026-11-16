@@ -598,6 +598,12 @@ function commandVF(frequency, power, deltaTime) {
 							const beat = (performance.now() - musicStartTime) / 60000 * tempo;
 							let frequency = 0;
 
+							if (musicNote < 0 || musicNoteEnds < 0) {
+								musicNote = 0;
+								musicNoteEnds = beats[0];
+								musicStartTime = performance.now();
+							}
+
 							while (beat >= musicNoteEnds && musicNote < beats.length) {
 								musicNoteEnds += beats[++musicNote];
 							}
@@ -636,7 +642,6 @@ function commandVF(frequency, power, deltaTime) {
 	if (prevTrainLoadID == trainLoadID && idx == prevPulsingIdx) {
 		data.oscillation_function = -1;
 	} else {
-		musicStartTime = performance.now();
 		musicNote = -1;
 		musicNoteEnds = -1;
 	}

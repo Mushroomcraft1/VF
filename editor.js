@@ -71,8 +71,10 @@ function createInput(preText, element, postText, tooltip, parentType) {
 function createEditorElement(key, schema, parent, trainValue) {
 	let element;
 	if (key == "keys") return;
+
 	const name = schema?.text != null ? schema.text + ": " : "";
 	const dataType = trainManager.dataTypes[schema.type] ?? {};
+
 	switch (schema.type) {
 		case "LENGTH":
 		case "FLOAT":
@@ -83,7 +85,7 @@ function createEditorElement(key, schema, parent, trainValue) {
 		{
 			let value = trainValue ?? schema.default ?? schema.min ?? dataType.min ?? 0;
 			const input = createElement("input", { 
-				type: "number", value, "data-key": key, 
+				type: "number", value, "data-key": key, "data-type": "NUMBER",
 				min: schema.min ?? dataType.min,
 				max: schema.max ?? dataType.max,
 				step: schema.step ?? dataType.step
@@ -96,16 +98,16 @@ function createEditorElement(key, schema, parent, trainValue) {
 		{
 			let value = trainValue ?? schema.default ?? schema.min ?? dataType.min ?? 0;
 			const container = createElement("span", {
-				"data-key": key
+				"data-key": key, "data-type": "NUMBER-RANGE"
 			});
 			const constant = createElement("input", { 
-				type: "number", value, "data-key": key, 
+				type: "number", value, "data-key": "min", 
 				min: schema.min ?? dataType.min,
 				max: schema.max ?? dataType.max,
 				step: schema.step ?? dataType.step
 			});
 			const range = createElement("input", { 
-				type: "number", value, "data-key": key, 
+				type: "number", value, "data-key": "max", 
 				min: schema.min ?? dataType.min,
 				max: schema.max ?? dataType.max,
 				step: schema.step ?? dataType.step
@@ -113,6 +115,7 @@ function createEditorElement(key, schema, parent, trainValue) {
 			const select = createElement("select", {
 				style: ""
 			}, ["editor-context"]);
+
 			select.append(
 				createElement("option", { innerText: "Constant"}),
 				createElement("option", { innerText: "Range"})
@@ -137,20 +140,22 @@ function createEditorElement(key, schema, parent, trainValue) {
 		case "FLOAT-ARRAY": 
 		case "FREQUENCY-ARRAY": {
 			let value = trainValue ?? [];
+
 			const input = createElement("input", {
-				value, type: "text", "data-key": key
+				value, type: "text", "data-key": key, "data-type": "NUMBER-ARRAY",
 			}, ["editor-array"]);
 			input.addEventListener("change", () => {
 				input.value = input.value.replaceAll(/[^0-9., ]/g, "");
 				updateTrainFromEditor();
 			})
+
 			element = createInput(name, input, dataType.unit, dataType.description);
 			break;
 		}
 		case "CONSTANT":
 		{
 			const values = schema.values;
-			const select = createElement("select", { "data-key": key });
+			const select = createElement("select", { "data-key": key, "data-type": "STRING" });
 	
 			for (const value of values) {
 				select.appendChild(createElement("option", { innerText: value }));
@@ -165,8 +170,8 @@ function createEditorElement(key, schema, parent, trainValue) {
 		case "KEY":
 		{
 			const keys = parent.keys;
-			console.log(trainValue, key)
-			const select = createElement("select", { "data-key": key });
+			
+			const select = createElement("select", { "data-key": key, "data-type": "STRING" });
 			for (const value of keys) {
 				select.appendChild(createElement("option", { innerText: value }));
 			}
@@ -186,7 +191,9 @@ function createEditorElement(key, schema, parent, trainValue) {
 		}
 		case "OBJECT-ARRAY":
 		{
-			element = createElement("div", { innerText: name, "data-key": key }, ["editor-category"]);
+			element = createElement("div", { 
+				innerText: name, "data-key": key, "data-type": "OBJECT-ARRAY"
+			}, ["editor-category"]);
 			const values = Object.keys(schema.objects ?? {});
 			const list = createElement("ol")
 			let idx = 0;
@@ -195,13 +202,12 @@ function createEditorElement(key, schema, parent, trainValue) {
 			for (const object in schema.all) if (schema.all[object].type == "KEY") keyProperty = object;
 
 			function addObject(object, idx) {
-				const listItem = createElement("li", { "data-key": idx }, ["editor-object"]);
+				const listItem = createElement("li", { "data-key": idx, "data-type": "OBJECT" }, ["editor-object"]);
 				schema.all.keys = values;
 				const all = createEditorElement(null, schema.all, schema, object);
 				listItem.appendChild(all);
 
 				for (const value of values) {
-					console.log(object, value, object[keyProperty])
 					const option = createEditorElement(value, schema.objects[value], null, object);
 					if (value != object[keyProperty]) option.hidden = true;
 					listItem.appendChild(option);
@@ -236,7 +242,9 @@ function createEditorElement(key, schema, parent, trainValue) {
 		}
 		default: 
 		{
-			element = createElement("div", { innerText: name, "data-key": key }, ["editor-category"]);
+			element = createElement("div", { 
+				innerText: name, "data-key": key, "data-type": "OBJECT" 
+			}, ["editor-category"]);
 			for (let schemaProperty in schema) {
 				if (typeof schema[schemaProperty] == "object") {
 					const recursiveElement = createEditorElement(
@@ -252,13 +260,83 @@ function createEditorElement(key, schema, parent, trainValue) {
 }
 
 function loadEditor() {
-	const elements = createEditorElement(train.name ?? "Unnamed", trainManager.JSONSchema, null, train);
+	const elements = createEditorElement(null, trainManager.JSONSchema, null, train);
+	elements.id = "editor-dynamic";
 	editor.replaceChildren();
 	editor.appendChild(elements);
+	updateTrainFromEditor();
+}
+
+/**
+ * @param {HTMLElement} element 
+ * @returns {*}
+ */
+function findValue(element) {
+	let queue = [element];
+	while (queue.length > 0) {
+		const firstInQueue = queue.shift();
+		if (firstInQueue.value != null) return firstInQueue.value;
+		for (const child of firstInQueue.children) {
+			queue.push(child);
+		}
+	}
+	return null;
+}
+
+/**
+ * @param {HTMLElement} element 
+ * @returns {Object}
+ */
+function createObjectFromElements(element) {
+	// console.log(element);
+	let object = {};
+	for (const child of element.children) {
+		if (child.hidden) continue;
+		const key = child["data-key"];
+		const basicType = child["data-type"]
+		switch (basicType) {
+			case "OBJECT":
+			{
+				object[key] = createObjectFromElements(child);
+				break;
+			}
+			case "OBJECT-ARRAY":
+			{
+				object[key] = [];
+				const recursiveObject = createObjectFromElements(child);
+				for (const property in recursiveObject) {
+					object[key][property] = recursiveObject[property];
+				}
+				break;
+			}
+			case "NUMBER":
+			{
+				const value = findValue(element);
+				if (value != null) {
+					const number = parseFloat(value);
+					if (!isNaN(number)) object[key] = number; 
+				}
+				break;
+			}
+			default:
+			{
+				const recursiveObject = createObjectFromElements(child);
+				for (const property in recursiveObject) {
+					object[property] = recursiveObject[property];
+				}
+				break;
+			}
+		}
+		console.log(key, object[key])
+	}
+	console.log(object)
+	return object
 }
 
 function updateTrainFromEditor() {
-	console.log("Update")
+	train = {};
+	train = createObjectFromElements(document.getElementById("editor-dynamic"));
+	loadTrain(train);
 }
 
 let mouse = { x: 0, y: 0, pressed: false };
