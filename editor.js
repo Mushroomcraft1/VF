@@ -4,8 +4,6 @@ import * as sound from "./sound.js";
 import * as codeGenerator from "./code-generator.js";
 
 let train;
-let name;
-let editorActiveGroup = "A";
 let highlightLanguage;
 
 const canvas = document.getElementById("visualisation");
@@ -14,6 +12,7 @@ const editor = document.getElementById("editor");
 const trainSelector = document.getElementById("train-select");
 const textInput = document.getElementById("text-input");
 const selectTrainButton = document.getElementById("select-train");
+const vfInfo = document.getElementById("vf-info");
 const saveTrainButton = document.getElementById("save-train");
 const generateCodeButton = document.getElementById("generate-code");
 const notificationArea = document.getElementById("notifications");
@@ -23,6 +22,30 @@ const codeContainer = document.getElementById("code-container");
 const loadLibraryButton = document.getElementById("load-library");
 const loadJSONButton = document.getElementById("load-json");
 const clearDatabaseButton = document.getElementById("clear-database");
+const editorActiveGroup = createElement("select")
+		
+editorActiveGroup.addEventListener("change", () => {
+	loadEditor(true);
+});
+editorActiveGroup.append(
+	createElement("option", { value: "A", textContent: "Frequency" }),
+	createElement("option", { value: "B", textContent: "Speed" }));
+
+const name = createElement("input", {
+	type: "text"
+}, ["train-name"]);
+
+const motorFrequency = createElement("span");
+const switchingFrequency = createElement("span");
+const trainSpeed = createElement("span");
+const trainPower = createElement("span");
+
+vfInfo.append(
+	createInput("Motor Frequency: ", motorFrequency, " Hz "),
+	createInput("Switching Frequency: ", switchingFrequency, " Hz"), 
+	createInput("Speed: ", trainSpeed, " km/h "),
+	createInput("Power: ", trainPower, "%")
+);
 
 document.querySelectorAll(".close-button").forEach(button => {
 	button.innerHTML = `<svg viewBox="0 0 50 50"><line fill="none" stroke-width="5" stroke-linecap="round" stroke-miterlimit="10" x1="5" y1="5" x2="45" y2="45"/><line fill="none" stroke-width="5" stroke-linecap="round" stroke-miterlimit="10" x1="45" y1="5" x2="5" y2="45"/></svg>`
@@ -31,7 +54,15 @@ document.querySelectorAll(".close-button").forEach(button => {
 	})
 });
 
-window.addEventListener("pointerdown", startSound);
+renderer.setRenderOptions({
+	sampleRate: 120000,
+	samplesPerPixel: 4
+});
+
+window.addEventListener("click", () => {
+	document.getElementById("click-to-start-sound").remove();
+	setTimeout(startSound, 100);
+});
 
 class Notif {
     #elm = null
@@ -102,7 +133,7 @@ function startSound() {
 	sound.startSound()
 		.then((soundUpdateFunction) => {
 			trainManager.setSoundUpdateFunction(soundUpdateFunction);
-			window.removeEventListener("pointerdown", startSound);
+			window.removeEventListener("click", startSound);
 		});
 }
 
@@ -170,7 +201,7 @@ function createInput(preText, element, postText, tooltip, parentType) {
 function createEditorElement(key, schema, parent, trainValue) {
 	let element;
 	if (key == "keys") return;
-	if (schema.group != null && schema.group != editorActiveGroup) return;
+	if (schema.group != null && schema.group != editorActiveGroup.value) return;
 
 	const name = schema?.text != null ? schema.text + ": " : "";
 	const dataType = trainManager.dataTypes[schema.type] ?? {};
@@ -372,23 +403,22 @@ function createEditorElement(key, schema, parent, trainValue) {
 	return element;
 }
 
-function loadEditor() {
+function loadEditor(modeOverride) {
 	try {
-		editorActiveGroup = "B";
-		for (const pulsing of train.pulsing) {
-			if (pulsing.min_motor_frequency != null) editorActiveGroup = "A";
+		if (!modeOverride) {
+			 editorActiveGroup.value = "B";
+			for (const pulsing of train.pulsing) {
+				if (pulsing.min_motor_frequency != null) editorActiveGroup.value = "A";
+			}
 		}
 
 		const elements = createEditorElement(null, trainManager.JSONSchema, null, train);
 		elements.id = "editor-dynamic";
 		editor.replaceChildren();
-
-		name = createElement("input", {
-			type: "text"
-		}, ["train-name"]);
+	
 		name.value = train.name ?? "Unnamed";
 		editor.appendChild(createInput("Name: ", name));
-
+		editor.appendChild(createInput("Editor Mode: ", editorActiveGroup));
 		editor.appendChild(elements);
 		updateTrainFromEditor();
 	} catch (err) {
@@ -730,6 +760,11 @@ let speed = 0;
 
 const style = window.getComputedStyle(document.body);
 
+function displayValue(number) {
+	if (isNaN(number)) return "--";
+	return number.toFixed(2);
+}
+
 function renderLoop() {
 	const time = performance.now();
 	const delta = time - prevFrame;
@@ -762,6 +797,33 @@ function renderLoop() {
 	speed = Math.max(0, speed);
 
 	trainManager.setTrainSpeed(speed);
+
+	const {
+		currentSpeed,
+		currentFrequency,
+		currentPower,
+		currentPulsingIdx
+	} = trainManager.getVFData();
+
+	const {
+		pulsingFrequency
+	} = sound.getSoundData();
+
+	motorFrequency.innerText = displayValue(currentFrequency);
+	switchingFrequency.innerText = displayValue(pulsingFrequency);
+	trainPower.innerText = displayValue((currentPower ?? 0) * 100);
+	trainSpeed.innerText = displayValue(currentSpeed);
+
+	const pulsingModes = editor.querySelector("ol");
+	let idx = 0;
+	for (const mode of pulsingModes.children) {
+		if (idx == currentPulsingIdx) {
+			mode.classList.add("active-mode");
+		} else {
+			mode.classList.remove("active-mode");
+		}
+		++idx;
+	}
 
 	window.requestAnimationFrame(renderLoop);
 	prevFrame = time;

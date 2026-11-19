@@ -699,6 +699,7 @@ function getVFData() {
 		carrierFrequency: PWMfreq,
 		pulses: pulsePattern,
 		pulsingMode: pulsingMethod,
+		currentPulsingIdx: prevPulsingIdx,
 		speedPerMotorHz: currentTrainConfig.speed_per_motor_hz
 	};
 }

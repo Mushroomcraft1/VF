@@ -16,6 +16,7 @@
     --yellow2: #FF612B;
     --blue1: #1798FF;
     --blue2: #8538FF;
+    --highlight: #FFFF88;
 	--background1: #66666644;
 	--background2: #44444466;
 	--background3: #000000CC;
@@ -112,9 +113,28 @@ button:hover {
 	max-height: 100%;
 }
 
+#click-to-start-sound {
+    font-size: 5em;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    background-color: var(--background2);
+}
+
 #load-manager {
 	right: 0;
 	border-bottom-left-radius: 1em;
+}
+
+#vf-info {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+	border-top-right-radius: 1em;
+	background-color: var(--background2);
+	padding: 1em;
+	backdrop-filter: blur(0.2em);
 }
 
 #editor {
@@ -161,6 +181,10 @@ ol {
 	overflow: scroll;
 	padding-right: 1em;
 	margin-left: 0 !important;
+}
+
+.active-mode {
+    color: var(--yellow1);
 }
 
 .editor-array {
