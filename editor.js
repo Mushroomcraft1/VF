@@ -1,14 +1,102 @@
 import * as renderer from "./render.js";
 import * as trainManager from "./interface.js";
 import * as sound from "./sound.js";
+import * as codeGenerator from "./code-generator.js";
 
 let train;
+let name;
+let editorActiveGroup = "A";
+let highlightLanguage;
 
 const canvas = document.getElementById("visualisation");
 const ctx = canvas.getContext("2d");
 const editor = document.getElementById("editor");
+const trainSelector = document.getElementById("train-select");
+const textInput = document.getElementById("text-input");
+const selectTrainButton = document.getElementById("select-train");
+const saveTrainButton = document.getElementById("save-train");
+const generateCodeButton = document.getElementById("generate-code");
+const notificationArea = document.getElementById("notifications");
+const codebox = document.getElementById("code");
+const textArea = document.getElementById("text");
+const codeContainer = document.getElementById("code-container");
+const loadLibraryButton = document.getElementById("load-library");
+const loadJSONButton = document.getElementById("load-json");
+const clearDatabaseButton = document.getElementById("clear-database");
+
+document.querySelectorAll(".close-button").forEach(button => {
+	button.innerHTML = `<svg viewBox="0 0 50 50"><line fill="none" stroke-width="5" stroke-linecap="round" stroke-miterlimit="10" x1="5" y1="5" x2="45" y2="45"/><line fill="none" stroke-width="5" stroke-linecap="round" stroke-miterlimit="10" x1="45" y1="5" x2="5" y2="45"/></svg>`
+	button.addEventListener("click", () => {
+		button.parentElement.classList.remove("active");
+	})
+});
 
 window.addEventListener("pointerdown", startSound);
+
+class Notif {
+    #elm = null
+    #animationDuration = 700
+
+    constructor(text, type) {
+        let style = ""
+        text = `${text}`
+        const duration = text.length * 100 + 1000
+        const types = { error: ["error", "err", "e", "failure", "fail", "f", "danger", "d", "red", "r"], warning: ["warning", "warn", "w", "yellow", "orange", "amber"], success: ["success", "suc", "s", "green"], blue: ["blue", "b"] }
+        if (types.error.includes(`${type}`.toLowerCase())) {
+            style = "background-image: linear-gradient(135deg, var(--red1), var(--red2));", type = "error"
+        } else if (types.warning.includes(`${type}`.toLowerCase())) {
+            style = "background-image: linear-gradient(135deg, var(--yellow1), var(--yellow2));", type = "warning"
+        } else if (types.success.includes(`${type}`.toLowerCase())) {
+            style = "background-image: linear-gradient(135deg, var(--theme2), var(--theme1));", type = "success"
+        } else if (types.blue.includes(`${type}`.toLowerCase())) {
+            style = "background-image: linear-gradient(135deg, var(--blue1), var(--blue2));", type = "blue"
+        } else {
+            let colour = `${type}`.replace("0x", "#").toUpperCase().match(/^#[A-F0-9]{3,4}([A-F0-9]{2})?([A-F0-9]{2})?/i)
+            if (!colour) colour = "var(--light-grey)"; else colour = colour[0]
+            style = `background-color: ${colour}`, type = "custom"
+        }
+
+		const css = "font-size: 30px;"
+		switch (type) {
+			case "error":
+				console.error("%c" + text, css + "color: #f00")
+				break
+			case "warning":
+				console.warn("%c" + text, css + "color: #ff0")
+				break
+			case "success":
+				console.log("%c" + text, css + "color: #0f0")
+				break
+			case "custom":
+				console.log("%c" + text, css)
+				break
+		}
+
+        const elm = document.createElement("div")
+        elm.classList = "notification"
+        elm.style = style
+        elm.textContent = text
+        notificationArea.appendChild(elm)
+        this.text = text, this.type = type, this.expires = duration + this.#animationDuration + new Date().getTime(), this.style = style, this.#elm = elm
+        setTimeout(() => this.delete(elm), parseInt(duration) + this.#animationDuration)
+    }
+
+    get expired() {
+        return this.expires < new Date()
+    }
+
+    get animationDuration() {
+        return this.#animationDuration
+    }
+
+    delete(elm) {
+        if (elm == null) elm = this.#elm
+        elm.classList += " hiding test"
+        setTimeout(() => {
+            elm.remove()
+        }, this.animationDuration)
+    }
+}
 
 function startSound() {
 	sound.startSound()
@@ -20,17 +108,28 @@ function startSound() {
 
 trainManager.setupDatabase("./trains.json")
 	.then(() => {
-		const availableTrains = trainManager.getAvailableTrains()[0];
-		loadTrain("hitachi");//availableTrains);
+		const availableTrain = trainManager.getAvailableTrains()[0];
+		new Notif("Loaded built in trains", "success")
+		loadTrain(availableTrain);
 		renderLoop();
 	})
-	.catch(renderLoop);
+	.catch((err) => {
+		new Notif("Failed to load built in trains " + err, "error")
+		renderLoop();
+	});
 
 renderer.setCanvas(canvas, ctx);
 
 function loadTrain(newTrain) {
-	train = trainManager.setTrain(newTrain);
+	let success = true;
+	try {
+		train = trainManager.setTrain(newTrain);
+	} catch (err) {
+		success = false;
+		new Notif("Failed to load train " + err, "err")
+	}
 	if (typeof newTrain == "string") train.name = newTrain;
+	if (success) new Notif("Succesfully loaded " + train.name, "success");
 	loadEditor();
 }
 
@@ -71,6 +170,7 @@ function createInput(preText, element, postText, tooltip, parentType) {
 function createEditorElement(key, schema, parent, trainValue) {
 	let element;
 	if (key == "keys") return;
+	if (schema.group != null && schema.group != editorActiveGroup) return;
 
 	const name = schema?.text != null ? schema.text + ": " : "";
 	const dataType = trainManager.dataTypes[schema.type] ?? {};
@@ -90,50 +190,60 @@ function createEditorElement(key, schema, parent, trainValue) {
 				max: schema.max ?? dataType.max,
 				step: schema.step ?? dataType.step
 			});
-			input.addEventListener("change", updateTrainFromEditor);
+			input.addEventListener("input", updateTrainFromEditor);
 			element = createInput(name, input, dataType.unit, dataType.description); 
 			break;
 		}
 		case "ANY-FREQUENCY":
 		{
-			let value = trainValue ?? schema.default ?? schema.min ?? dataType.min ?? 0;
+			let value = trainValue ?? schema.default ?? dataType.min ?? 0;
+			let start, end;
+			if (typeof value == "object") {
+				start = value.start;
+				end = value.end;
+			} else {
+				start = value;
+				end = value;
+			}
+			const rangeHidden = start == end;
 			const container = createElement("span", {
 				"data-key": key, "data-type": "NUMBER-RANGE"
 			});
 			const constant = createElement("input", { 
-				type: "number", value, "data-key": "min", 
+				type: "number", value: start,
+				"data-key": "start", "data-type": "NUMBER",
 				min: schema.min ?? dataType.min,
 				max: schema.max ?? dataType.max,
 				step: schema.step ?? dataType.step
 			});
 			const range = createElement("input", { 
-				type: "number", value, "data-key": "max", 
+				type: "number", value: end,
+				"data-key": "end", "data-type": "NUMBER",
 				min: schema.min ?? dataType.min,
 				max: schema.max ?? dataType.max,
 				step: schema.step ?? dataType.step
 			});
-			const select = createElement("select", {
-				style: ""
-			}, ["editor-context"]);
+			const select = createElement("select", null, ["editor-context"]);
 
 			select.append(
 				createElement("option", { innerText: "Constant"}),
 				createElement("option", { innerText: "Range"})
 			);
-			select.value = "Constant";
+			select.value = rangeHidden ? "Constant" : "Range";
 			select.addEventListener("change", () => {
 				range.parentElement.hidden = select.value == "Constant";
+				updateTrainFromEditor();
 			});
 
-			constant.addEventListener("change", updateTrainFromEditor);
-			range.addEventListener("change", updateTrainFromEditor);
+			constant.addEventListener("input", updateTrainFromEditor);
+			range.addEventListener("input", updateTrainFromEditor);
 			container.append(
 				select,
 				createInput(null, constant, dataType.unit, null, "span"),
 				createInput(" to ", range, dataType.unit, null, "span")
 			);
 
-			range.parentElement.hidden = true;
+			range.parentElement.hidden = rangeHidden;
 			element = createInput(name, container, null, dataType.description);
 			break;
 		}
@@ -144,7 +254,7 @@ function createEditorElement(key, schema, parent, trainValue) {
 			const input = createElement("input", {
 				value, type: "text", "data-key": key, "data-type": "NUMBER-ARRAY",
 			}, ["editor-array"]);
-			input.addEventListener("change", () => {
+			input.addEventListener("input", () => {
 				input.value = input.value.replaceAll(/[^0-9., ]/g, "");
 				updateTrainFromEditor();
 			})
@@ -180,8 +290,7 @@ function createEditorElement(key, schema, parent, trainValue) {
 			select.addEventListener("change", () => {
 				const affectors = select.parentElement.parentElement.parentElement.children;
 				for (const element of affectors) {
-					if (element["data-key"] == null) continue;
-					element.hidden = element["data-key"] != select.value;
+					if (element["data-property"] != null) element.hidden = element["data-property"] != select.value;
 				}
 				updateTrainFromEditor();
 			});
@@ -208,12 +317,13 @@ function createEditorElement(key, schema, parent, trainValue) {
 				listItem.appendChild(all);
 
 				for (const value of values) {
-					const option = createEditorElement(value, schema.objects[value], null, object);
+					const option = createEditorElement(null, schema.objects[value], null, object);
+					option["data-property"] = value;
 					if (value != object[keyProperty]) option.hidden = true;
 					listItem.appendChild(option);
 				}
 
-				const deleteButton = createElement("button", { innerText: "Delete" }, ["editor-object-delete"]);
+				const deleteButton = createElement("button", { innerText: "×" }, ["editor-object-delete"]);
 				deleteButton.addEventListener("click", () => {
 					listItem.remove();
 					updateTrainFromEditor();
@@ -242,13 +352,16 @@ function createEditorElement(key, schema, parent, trainValue) {
 		}
 		default: 
 		{
-			element = createElement("div", { 
-				innerText: name, "data-key": key, "data-type": "OBJECT" 
-			}, ["editor-category"]);
+			const properties = { innerText: name };
+			if (key != null) {
+				properties["data-key"] = key;
+				properties["data-type"] = "OBJECT";
+			}
+			element = createElement("div", properties, ["editor-category"]);
 			for (let schemaProperty in schema) {
 				if (typeof schema[schemaProperty] == "object") {
 					const recursiveElement = createEditorElement(
-						schemaProperty, schema[schemaProperty], schema, trainValue[schemaProperty]
+						schemaProperty, schema[schemaProperty], schema, (trainValue ?? {})[schemaProperty]
 					);
 					if (recursiveElement != null) element.appendChild(recursiveElement);
 				}
@@ -260,11 +373,27 @@ function createEditorElement(key, schema, parent, trainValue) {
 }
 
 function loadEditor() {
-	const elements = createEditorElement(null, trainManager.JSONSchema, null, train);
-	elements.id = "editor-dynamic";
-	editor.replaceChildren();
-	editor.appendChild(elements);
-	updateTrainFromEditor();
+	try {
+		editorActiveGroup = "B";
+		for (const pulsing of train.pulsing) {
+			if (pulsing.min_motor_frequency != null) editorActiveGroup = "A";
+		}
+
+		const elements = createEditorElement(null, trainManager.JSONSchema, null, train);
+		elements.id = "editor-dynamic";
+		editor.replaceChildren();
+
+		name = createElement("input", {
+			type: "text"
+		}, ["train-name"]);
+		name.value = train.name ?? "Unnamed";
+		editor.appendChild(createInput("Name: ", name));
+
+		editor.appendChild(elements);
+		updateTrainFromEditor();
+	} catch (err) {
+		new Notif(err, "err");
+	}
 }
 
 /**
@@ -288,7 +417,6 @@ function findValue(element) {
  * @returns {Object}
  */
 function createObjectFromElements(element) {
-	// console.log(element);
 	let object = {};
 	for (const child of element.children) {
 		if (child.hidden) continue;
@@ -304,8 +432,10 @@ function createObjectFromElements(element) {
 			{
 				object[key] = [];
 				const recursiveObject = createObjectFromElements(child);
-				for (const property in recursiveObject) {
-					object[key][property] = recursiveObject[property];
+				const keys = Object.keys(recursiveObject).sort((a, b) => a - b);
+				let idx = 0;
+				for (const order of keys) {
+					object[key][idx++] = recursiveObject[order];
 				}
 				break;
 			}
@@ -318,6 +448,27 @@ function createObjectFromElements(element) {
 				}
 				break;
 			}
+			case "NUMBER-RANGE":
+			{
+				let value = createObjectFromElements(element.lastChild);
+				if (value.end == null) value = value.start;
+				object[key] = value;
+				break;
+			}
+			case "NUMBER-ARRAY":
+			{
+				const value = findValue(element);
+				if (value != null) object[key] = value.split(",").map(parseFloat);
+				break;
+			}
+			case "STRING":
+			{
+				const value = findValue(element);
+				if (value != null) {
+					object[key] = value; 
+				}
+				break;
+			}
 			default:
 			{
 				const recursiveObject = createObjectFromElements(child);
@@ -327,22 +478,241 @@ function createObjectFromElements(element) {
 				break;
 			}
 		}
-		console.log(key, object[key])
 	}
-	console.log(object)
 	return object
 }
 
 function updateTrainFromEditor() {
+	const dynamic = document.getElementById("editor-dynamic");
+	let pulsingElement, pulsingModesList;
+	for (const child of dynamic.children) if (child["data-key"] == "pulsing") {
+		pulsingElement = child;
+		break;
+	}
+	if (pulsingElement != null) pulsingModesList = pulsingElement.querySelector("ol");
+
 	train = {};
-	train = createObjectFromElements(document.getElementById("editor-dynamic"));
-	loadTrain(train);
+	train = createObjectFromElements(dynamic);
+	try {
+		trainManager.setTrain(train);
+	} catch (err) {
+		new Notif("Failed to load train " + err, "err");
+		return false;
+	}
 }
 
-let mouse = { x: 0, y: 0, pressed: false };
+function scroll(elm, x, y) {
+	elm.scrollLeft = x ?? 0
+	elm.scrollTop = y ?? 0
+}
+
+textArea.addEventListener("input", () => {
+	codebox.innerHTML = hljs.highlight(textArea.value, { language: highlightLanguage }).value;
+});
+textArea.addEventListener("scroll", () => {
+	scroll(codeContainer, textArea.scrollLeft, textArea.scrollTop);
+})
+
+function openTextArea(text, format, buttons, description) {
+	const buttonRow = textInput.querySelector(".button-row");
+	highlightLanguage = format;
+
+	buttonRow.replaceChildren();
+
+	const copyButton = createElement("button", { textContent: "Copy" });
+	copyButton.addEventListener("click", () => {
+		navigator.clipboard.writeText(textArea.value);
+		new Notif("Coppied to clipboard", "success")
+	});
+	const saveButton = createElement("button", { textContent: "Save to File" });
+	saveButton.addEventListener("click", () => {
+		const blob = new Blob([textArea.value], { 
+			type: "text/" + (format ?? "txt")
+		});
+		const filename = `${(name.value ?? "unnamed").replaceAll(/[^\w\d\-_ ]/g, "")}.${format ?? "txt"}`;
+		const url = URL.createObjectURL(blob);
+		createElement("a", { href: url, download: filename }).click();
+		URL.revokeObjectURL(url);
+		new Notif("Succesfully downloaded " + name.value, "success");
+	})
+
+	buttonRow.append(copyButton, saveButton, ...buttons);
+
+	document.getElementById("text-description").innerText = description ?? "";
+
+	textArea.value = text;
+	textArea.dispatchEvent(new Event("input"));
+	textInput.classList.add("active");
+}
+
+function openTrainSelector() {
+	const trainsList = trainSelector.children[0];
+	const outerLibraryGroup = createElement("div");
+	const libraryGroup = createElement("div");
+	outerLibraryGroup.appendChild(createElement("h1", {
+		textContent: "Loaded Trains"
+	}));
+
+	const trains = trainManager.getAvailableTrains().map((name) => { 
+		return {
+			name,
+			type: "library"
+		}});
+
+	try {
+		const object = JSON.parse(localStorage.getItem("trains") ?? "{}");
+		const keys = Object.keys(object);
+		for (const key of keys) {
+			object[key].name = key;
+			trains.push({ 
+				name: key,
+				type: "save",
+				object: object[key]
+			});
+		}
+	} catch (err) {
+		new Notif("Failed to load saved trains: " + err, "err");
+	}
+
+	trains
+		.sort((a, b) => a.name.localeCompare(b.name, "en", { ignoreCase: true }));
+
+	let prevChar = null;
+	trains.forEach((train) => {
+		const newChar = train.name[0].toUpperCase();
+		if (newChar != prevChar) {
+			libraryGroup.appendChild(createElement("h2", {
+				textContent: newChar
+			}));
+			prevChar = newChar;
+		}
+		const trainElement = createElement("a", {
+			textContent: train.name
+		}, ["train-link", "train-link-" + train.type]);
+		trainElement.addEventListener("click", () => {
+			if (train.type == "library") {
+				loadTrain(train.name);
+			} else {
+				loadTrain(train.object);
+			}
+		});
+		libraryGroup.appendChild(trainElement);
+	})
+
+	outerLibraryGroup.appendChild(libraryGroup);
+
+	trainsList.replaceChildren();
+	trainsList.append(outerLibraryGroup);
+	trainSelector.classList.add("active");
+}
+
+selectTrainButton.addEventListener("click", openTrainSelector);
+
+loadLibraryButton.addEventListener("click", () => {
+	const loadDatabases = createElement("button", {
+		textContent: "Load Databases"
+	});
+	loadDatabases.addEventListener("click", async () => {
+		loadDatabases.disabled = true;
+		const urls = textArea.value
+			.split("\n")
+			.map(v => v.trim())
+			.filter(v => v != "");
+			
+		for (const url of urls) {
+			try {
+				await trainManager.setupDatabase(url);
+				new Notif("Succesfully loaded " + url, "success");
+			} catch (err) {
+				new Notif(`Failed to load ${url}:\n${err}`, "err");
+			} 
+		}
+		loadDatabases.disabled = false;
+		openTrainSelector();
+	});
+	const buttons = [
+		loadDatabases
+	];
+	openTextArea("", "txt", buttons, "List of URLs to JSON files, 1 URL per line");
+});
+
+function parseTextAreaJSON() {
+	try {
+		const parsed = JSON.parse(`${textArea.value}`);
+		const keys = Object.keys(parsed);
+		if (keys.includes("pulsing")) {
+			if (parsed.name == null) parsed.name = "JSON";
+			loadTrain(parsed);
+		} else {
+			trainManager.setupDatabase(parsed);
+			new Notif("Sucessfully loaded JSON database", "success");
+		}
+	} catch (err) {
+		new Notif(err, "err");
+	}
+	openTrainSelector();
+}
+
+loadJSONButton.addEventListener("click", () => {
+	const loadJSON = createElement("button", {
+		innerText: "Load JSON"
+	});
+	const loadFile = createElement("input", {
+		type: "file",
+		accept: "text/*",
+		id: "upload-json"
+	});
+
+	loadFile.addEventListener("change", (event) => {
+		const reader = new FileReader();
+		reader.readAsText(loadFile.files[0]);
+		reader.addEventListener("load", () => {
+			textArea.value = reader.result;
+			textArea.dispatchEvent(new Event("input"));
+			parseTextAreaJSON();
+		});
+	});
+	loadJSON.addEventListener("click", parseTextAreaJSON);
+
+	const buttons = [
+		loadJSON, loadFile
+	];
+	openTextArea("", "JSON", buttons, "JSON Object of a single train or train database");
+})
+
+clearDatabaseButton.addEventListener("click", () => {
+	console.log("clear")
+	trainManager.clearDatabase();
+	openTrainSelector();
+});
+
+saveTrainButton.addEventListener("click", () => {
+	const saveToBrowser = createElement("button", { textContent: "Save to Browser" });
+	saveToBrowser.addEventListener("click", () => {
+		try {
+			const current = JSON.parse(localStorage.getItem("trains") ?? "{}");
+			current[name.value ?? "Unnamed"] = train;
+			localStorage.setItem("trains", JSON.stringify(current));
+			new Notif(`Saved ${name.value ?? "Unnamed"} to Browser Storage`, "success");
+		} catch (err) {
+			new Notif(err, "err");
+		}
+	});
+	const buttons = [saveToBrowser];
+	openTextArea(JSON.stringify(train, null, "\t"), "JSON", buttons);
+});
+
+generateCodeButton.addEventListener("click", () => {
+	const buttons = [];
+	openTextArea(codeGenerator.generateCode(), "C", buttons);
+});
+
+let mouse = { x: 0, y: 0, pressed: false, clickPosition: { x: 0, y: 0 } };
 
 canvas.addEventListener("pointerdown", (e) => {
 	mouse.pressed = true;
+	mouse.clickPosition.x = e.clientX;
+	mouse.clickPosition.y = e.clientY;
 	e.preventDefault();
 });
 
@@ -358,19 +728,40 @@ window.addEventListener("pointerup", () => {
 let prevFrame = 0;
 let speed = 0;
 
+const style = window.getComputedStyle(document.body);
+
 function renderLoop() {
 	const time = performance.now();
 	const delta = time - prevFrame;
 
 	renderer.renderVisualisations();
 
-	if (mouse.pressed) speed += (train?.controls?.acceleration ?? 2.5) / 1000 * delta;
+	if (mouse.pressed) {
+		const trackLength = 200;
+		const x = mouse.clickPosition.x;
+		const y = mouse.clickPosition.y;
+		const factor = Math.min(Math.max(-1, (y - mouse.y) / trackLength), 1);
+		if (factor > 0) {
+			speed += (train?.controls?.acceleration ?? 2.5) * factor / 1000 * delta;
+		} else {
+			speed += (train?.controls?.deceleration ?? 3) * factor / 1000 * delta;
+		}
+
+		ctx.fillStyle = ctx.strokeStyle = style.getPropertyValue("--white");
+		ctx.lineWidth = 3;
+
+		ctx.beginPath();
+		ctx.moveTo(x, y - trackLength);
+		ctx.lineTo(x, y + trackLength);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.arc(x, y - factor * trackLength, 
+			50, 0, Math.PI * 2);
+      	ctx.fill();
+	}
+	speed = Math.max(0, speed);
 
 	trainManager.setTrainSpeed(speed);
-
-	ctx.beginPath();
-	ctx.arc(mouse.x, mouse.y, 50, 0, Math.PI * 2, false);
-  	ctx.stroke();
 
 	window.requestAnimationFrame(renderLoop);
 	prevFrame = time;

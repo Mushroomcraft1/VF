@@ -11,34 +11,39 @@
 				"carrier_frequency": 300
 			},
 			{
-				"min_motor_frequency": 7.2,
+				"min_motor_frequency": 14.4,
 				"mode": "SYNC",
 				"pulses": 21
 			},
 			{
-				"min_motor_frequency": 8.6,
+				"min_motor_frequency": 20,
 				"mode": "SYNC",
 				"pulses": 15
 			},
 			{
-				"min_motor_frequency": 13,
+				"min_motor_frequency": 24.5,
 				"mode": "SHE-PWM",
-				"pulses": 11
+				"pulses": 9
 			},
 			{
-				"min_motor_frequency": 18,
+				"min_motor_frequency": 29.8,
 				"mode": "SHE-PWM",
 				"pulses": 7
 			},
 			{
-				"min_motor_frequency": 25,
+				"min_motor_frequency": 34,
 				"mode": "SHE-PWM",
 				"pulses": 5
 			},
 			{
-				"min_motor_frequency": 32,
+				"min_motor_frequency": 38,
 				"mode": "SHE-PWM",
 				"pulses": 3
+			},
+			{
+				"min_motor_frequency": 42,
+				"mode": "SYNC",
+				"pulses": 1
 			}
 		]
 	},
@@ -350,7 +355,7 @@
 			}
 		]
 	},
-	"class 700": {
+	"Class 700": {
 		"wheel_diameter": 0.84,
 		"gear_ratio_motor_side": 6,
 		"gear_ratio_wheel_side": 1,
@@ -360,25 +365,21 @@
 				"min_speed": 0,
 				"oscillation_mode": "SAW-RISING",
 				"oscillation_frequency": 6.5,
-				"min_carrier_frequency": 550,
-				"max_carrier_frequency": 650
+				"min_carrier_frequency": { "start": 550, "end": 650 },
+				"max_carrier_frequency": { "start": 650, "end": 750 }
 			},
 			{
 				"mode": "ASYNC-OSCILLATING",
-				"min_speed": 40,
-				"oscillation_mode": "SAW-RISING",
-				"oscillation_frequency": 6.5,
-				"min_carrier_frequency": 650,
-				"max_carrier_frequency": 750
-			},
-			{
-				"mode": "ASYNC-OSCILLATING",
-				"min_speed": 70,
-				"pulses": 3,
+				"min_speed": 35,
 				"oscillation_mode": "SAW-RISING",
 				"oscillation_frequency": 6.5,
 				"min_carrier_frequency": 1400,
 				"max_carrier_frequency": 1600
+			},
+			{
+				"mode": "SYNC",
+				"min_speed": 100,
+				"pulses": 3
 			}
 		]
 	},
@@ -481,6 +482,32 @@
 			}
 		]
 	},
+	"300hz": {
+		"wheel_diameter": 0.84,
+		"gear_ratio_motor_side": 6,
+		"gear_ratio_wheel_side": 1,
+		"motor_poles": 8,
+		"pulsing": [
+			{
+				"mode": "ASYNC",
+				"carrier_frequency": 300,
+				"min_motor_frequency": 0
+			},
+			{
+				"mode": "AUTO-SYNC",
+				"min_pulses": 1,
+				"max_pulses": 21,
+				"pulse_step": 2,
+				"max_switching_frequency": 300,
+				"min_motor_frequency": 20
+			},
+			{
+				"mode": "SYNC",
+				"pulses": 1,
+				"min_motor_frequency": 50
+			}
+		]
+	},
 	"400hz": {
 		"wheel_diameter": 0.84,
 		"gear_ratio_motor_side": 6,
@@ -494,11 +521,140 @@
 			},
 			{
 				"mode": "AUTO-SYNC",
-				"carrier_frequency": 400,
 				"min_pulses": 1,
 				"max_pulses": 21,
 				"pulse_step": 2,
 				"max_switching_frequency": 400,
+				"min_motor_frequency": 20
+			},
+			{
+				"mode": "SYNC",
+				"pulses": 1,
+				"min_motor_frequency": 50
+			}
+		]
+	},
+	"500hz": {
+		"wheel_diameter": 0.84,
+		"gear_ratio_motor_side": 6,
+		"gear_ratio_wheel_side": 1,
+		"motor_poles": 8,
+		"pulsing": [
+			{
+				"mode": "ASYNC",
+				"carrier_frequency": 500,
+				"min_motor_frequency": 0
+			},
+			{
+				"mode": "AUTO-SYNC",
+				"min_pulses": 1,
+				"max_pulses": 21,
+				"pulse_step": 2,
+				"max_switching_frequency": 500,
+				"min_motor_frequency": 20
+			},
+			{
+				"mode": "SYNC",
+				"pulses": 1,
+				"min_motor_frequency": 50
+			}
+		]
+	},
+	"600hz": {
+		"wheel_diameter": 0.84,
+		"gear_ratio_motor_side": 6,
+		"gear_ratio_wheel_side": 1,
+		"motor_poles": 8,
+		"pulsing": [
+			{
+				"mode": "ASYNC",
+				"carrier_frequency": 600,
+				"min_motor_frequency": 0
+			},
+			{
+				"mode": "AUTO-SYNC",
+				"min_pulses": 1,
+				"max_pulses": 21,
+				"pulse_step": 2,
+				"max_switching_frequency": 600,
+				"min_motor_frequency": 20
+			},
+			{
+				"mode": "SYNC",
+				"pulses": 1,
+				"min_motor_frequency": 50
+			}
+		]
+	},
+	"700hz": {
+		"wheel_diameter": 0.84,
+		"gear_ratio_motor_side": 6,
+		"gear_ratio_wheel_side": 1,
+		"motor_poles": 8,
+		"pulsing": [
+			{
+				"mode": "ASYNC",
+				"carrier_frequency": 700,
+				"min_motor_frequency": 0
+			},
+			{
+				"mode": "AUTO-SYNC",
+				"min_pulses": 1,
+				"max_pulses": 21,
+				"pulse_step": 2,
+				"max_switching_frequency": 700,
+				"min_motor_frequency": 20
+			},
+			{
+				"mode": "SYNC",
+				"pulses": 1,
+				"min_motor_frequency": 50
+			}
+		]
+	},
+	"800hz": {
+		"wheel_diameter": 0.84,
+		"gear_ratio_motor_side": 6,
+		"gear_ratio_wheel_side": 1,
+		"motor_poles": 8,
+		"pulsing": [
+			{
+				"mode": "ASYNC",
+				"carrier_frequency": 800,
+				"min_motor_frequency": 0
+			},
+			{
+				"mode": "AUTO-SYNC",
+				"min_pulses": 1,
+				"max_pulses": 21,
+				"pulse_step": 2,
+				"max_switching_frequency": 800,
+				"min_motor_frequency": 20
+			},
+			{
+				"mode": "SYNC",
+				"pulses": 1,
+				"min_motor_frequency": 50
+			}
+		]
+	},
+	"900hz": {
+		"wheel_diameter": 0.84,
+		"gear_ratio_motor_side": 6,
+		"gear_ratio_wheel_side": 1,
+		"motor_poles": 8,
+		"pulsing": [
+			{
+				"mode": "ASYNC",
+				"carrier_frequency": 900,
+				"min_motor_frequency": 0
+			},
+			{
+				"mode": "AUTO-SYNC",
+				"min_pulses": 1,
+				"max_pulses": 21,
+				"pulse_step": 2,
+				"max_switching_frequency": 900,
 				"min_motor_frequency": 20
 			},
 			{

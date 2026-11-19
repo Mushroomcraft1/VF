@@ -620,7 +620,7 @@
 			loadEditor(loadTrain.value, setTrain(loadTrain.value));
 		})
 
-		setupDatabase("./shit-trains.json")
+		setupDatabase("./trains.json")
 			.then(() => {
 				const trains = getAvailableTrains();
 				loadTrain.replaceChildren();

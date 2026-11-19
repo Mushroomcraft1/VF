@@ -1,13 +1,44 @@
 <!DOCTYPE html>
 <html theme="dark">
 	<head>
-		<link href="./editor.css" rel="stylesheet">
+		<link href="./style/editor.css" rel="stylesheet">
+		<link href="./style/highlight.css" rel="stylesheet">
+    	<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
 		<script defer type="module" src="./editor.js"></script>
 	</head>
 	<body>
 		<canvas id="visualisation"></canvas>
 		<div id="editor">
 			
+		</div>
+		<div id="load-manager">
+			<button id="select-train">Select Train</button>
+			<button id="save-train">Save Train</button>
+			<button id="generate-code">Generate Code</button>
+		</div>
+		<div id="train-select">
+			<div class="train-list">
+
+			</div>
+			<div class="button-row">
+				<button id="load-library">Load Online Library</button>
+				<button id="load-json">Load JSON</button>
+				<button id="clear-database">Clear Database</button>
+			</div>
+			<button class="close-button"></button>
+		</div>
+		<div id="text-input">
+			<div id="text-description">
+			</div>
+			<div id="codebox-container">
+				<pre id="code-container"><code id="code" class="" data-lang="json"></code></pre>
+				<textarea id="text" class="nobg-scrollbar" data-prevent-tab="true" spellcheck="false"></textarea>
+			</div>
+			<div class="button-row">
+			</div>
+			<button class="close-button"></button>
+		</div>
+		<div id="notifications">
 		</div>
 	</body>
 </html>
